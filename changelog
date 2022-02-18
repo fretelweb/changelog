@@ -14,16 +14,23 @@ if (fs.existsSync("./package.json")) {
     defaultVersion = version || defaultVersion;
 }
 
+if (fs.existsSync("./composer.json")) {
+    const {version} = require(process.cwd() + "/composer.json");
+    defaultVersion = version || defaultVersion;
+}
+
 const args = process.argv.slice(2);
 const notime = args.find(e => e === "--notime");
 const amend = args.find(e => e === "--amend");
-
 
 const gitTags = child.execSync(`git tag`).toString();
 let lastTag = child.execSync(`git rev-list --max-parents=0 HEAD | tail -1`).toString().trim();
 let tags = gitTags.split("\n");
 if (!tags || tags.length === 0 || tags[0] === "") {
     tags = ["HEAD"];
+}else{
+    defaultVersion = "latest";
+    tags.push('HEAD');
 }
 
 let changelogData = [];
@@ -42,47 +49,26 @@ tags.forEach(tag => {
         .filter(commit => Boolean(commit.sha));
 
     const version = tag != "HEAD" ? tag : defaultVersion;
-    console.log(`Version: ${version}`);
+    console.log(`\x1b[36mVersion: ${version}\x1b[0m`);
     let newChangelog = `### Version: ${version}\n\n`;
 
     const features = [];
-    const chores = [];
+    const tasks = [];
     const fixes = [];
+    const chores = [];
 
     commitsArray.forEach(commit => {
         if (appendCommit("fix[:]? ", commit, fixes)) return;
         if (appendCommit("feat[:]? ", commit, features)) return;
         if (appendCommit("add[:]? ", commit, features)) return;
+        if (appendCommit("task[:]? ", commit, tasks)) return;
         if (appendCommit("chore[:]? ", commit, chores)) return;
 
     });
-
-    if (features.length) {
-        newChangelog += `#### 📢 Features\n`;
-        features.forEach(feature => {
-            newChangelog += feature;
-        });
-        newChangelog += "\n";
-        console.log(features.length + ' features');
-    }
-    if (fixes.length) {
-        newChangelog += `#### 👷 Fixes\n`;
-        fixes.forEach(chore => {
-            newChangelog += chore;
-        });
-        newChangelog += "\n";
-        console.log(fixes.length + ' fixes');
-
-    }
-    if (chores.length) {
-        newChangelog += `#### 🧮 Chores\n`;
-        chores.forEach(chore => {
-            newChangelog += chore;
-        });
-        newChangelog += "\n";
-        console.log(chores.length + ' chores');
-
-    }
+    newChangelog += renderList(`#### 📢 Features`,features);
+    newChangelog += renderList(`#### 📋 Tasks`,tasks);
+    newChangelog += renderList(`#### 👷 Fixes`,fixes);
+    newChangelog += renderList(`#### 🧮 Chores`,chores);
 
     changelogData.push(newChangelog);
     lastTag = tag;
@@ -105,5 +91,18 @@ function appendCommit(tipo, commit, arreglo) {
         return true;
     }
     return false;
+}
+
+function renderList(title,arreglo){
+    let newChangelog = '';
+    if (arreglo.length) {
+        newChangelog += `${title}\n`;
+        arreglo.forEach(feature => {
+            newChangelog += feature;
+        });
+        newChangelog += "\n";
+        console.log(title.replace(/#+\s.*\s/g,'') +': '+ arreglo.length);
+    }
+    return newChangelog;
 }
 
