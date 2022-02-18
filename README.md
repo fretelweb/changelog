@@ -10,8 +10,11 @@ Changelog generator based on GIT Commits
 * it would create a file CHANGELOG.md and fill with commits and tag versions
 
 ## Recommendation
-* Use flags at the begins of the commit message (Supported flags: "feat: ", "add: ", "fix: ", "chore: " )
+* Use flags at the begins of the commit message (Supported flags: "feat: ", "add: ", "fix: ", "chore: ", "task: " )
 * Use tags to group commits in changelog file
+
+## Thanks
+* [Jacky Efendi tutorial](https://betterprogramming.pub/create-your-own-changelog-generator-with-git-aefda291ea93)
 
 
 
