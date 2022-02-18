@@ -16,6 +16,8 @@ if (fs.existsSync("./package.json")) {
 
 const args = process.argv.slice(2);
 const notime = args.find(e => e === "--notime");
+const amend = args.find(e => e === "--amend");
+
 
 const gitTags = child.execSync(`git tag`).toString();
 let lastTag = child.execSync(`git rev-list --max-parents=0 HEAD | tail -1`).toString().trim();
@@ -87,6 +89,10 @@ tags.forEach(tag => {
 });
 
 fs.writeFileSync("./CHANGELOG.md", `## Changelog\n___\n${changelogData.reverse().join("")}`);
+if(amend){
+    child.execSync('git add --all && git commit --amend --no-edit')
+    console.log('Amend commit message');
+}
 console.log('PROCESS FINISHED');
 
 function appendCommit(tipo, commit, arreglo) {
