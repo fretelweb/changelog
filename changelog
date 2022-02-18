@@ -88,7 +88,7 @@ tags.forEach(tag => {
     lastTag = tag;
 });
 
-fs.writeFileSync("./CHANGELOG.md", `## Changelog\n___\n${changelogData.reverse().join("")}`);
+fs.writeFileSync("./CHANGELOG.md", `## Changelog\n\n${changelogData.reverse().join("")}`);
 if(amend){
     child.execSync('git add --all && git commit --amend --no-edit')
     console.log('Amend commit message');
