@@ -8,7 +8,7 @@ const fs = require("fs");
 if (!fs.existsSync("./CHANGELOG.md")) {
     fs.writeFileSync("./CHANGELOG.md", "", {flag: "w"});
 }
-let defaultVersion = "0.1.0";
+let defaultVersion = "latest";
 if (fs.existsSync("./package.json")) {
     const {version} = require(process.cwd() + "/package.json");
     defaultVersion = version || defaultVersion;
@@ -29,7 +29,6 @@ let tags = gitTags.split("\n");
 if (!tags || tags.length === 0 || tags[0] === "") {
     tags = ["HEAD"];
 }else{
-    defaultVersion = "latest";
     tags.push('HEAD');
 }
 
