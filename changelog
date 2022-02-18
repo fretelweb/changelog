@@ -1,0 +1,103 @@
+#!/usr/bin/env node
+
+// Doc: https://betterprogramming.pub/create-your-own-changelog-generator-with-git-aefda291ea93
+
+const child = require("child_process");
+const fs = require("fs");
+
+if (!fs.existsSync("./CHANGELOG.md")) {
+    fs.writeFileSync("./CHANGELOG.md", "", {flag: "w"});
+}
+let defaultVersion = "0.1.0";
+if (fs.existsSync("./package.json")) {
+    const {version} = require(process.cwd() + "/package.json");
+    defaultVersion = version || defaultVersion;
+}
+
+const args = process.argv.slice(2);
+const notime = args.find(e => e === "--notime");
+
+const gitTags = child.execSync(`git tag`).toString();
+let lastTag = child.execSync(`git rev-list --max-parents=0 HEAD | tail -1`).toString().trim();
+let tags = gitTags.split("\n");
+if (!tags || tags.length === 0 || tags[0] === "") {
+    tags = ["HEAD"];
+}
+
+let changelogData = [];
+tags.forEach(tag => {
+    if (tag === "") return;
+    const output = child
+        .execSync(`git log --format=%cs%n%B%H----DELIMITER---- ${tag}...${lastTag}`)
+        .toString("utf-8");
+
+    const commitsArray = output
+        .split("----DELIMITER----\n")
+        .map(commit => {
+            const [date, message, sha] = commit.split("\n");
+            return {sha, message, date};
+        })
+        .filter(commit => Boolean(commit.sha));
+
+    const version = tag != "HEAD" ? tag : defaultVersion;
+    console.log(`Version: ${version}`);
+    let newChangelog = `### Version: ${version}\n\n`;
+
+    const features = [];
+    const chores = [];
+    const fixes = [];
+
+    commitsArray.forEach(commit => {
+        if (appendCommit("fix[:]? ", commit, fixes)) return;
+        if (appendCommit("feat[:]? ", commit, features)) return;
+        if (appendCommit("add[:]? ", commit, features)) return;
+        if (appendCommit("chore[:]? ", commit, chores)) return;
+
+    });
+
+    if (features.length) {
+        newChangelog += `#### 📢 Features\n`;
+        features.forEach(feature => {
+            newChangelog += feature;
+        });
+        newChangelog += "\n";
+        console.log(features.length + ' features');
+    }
+    if (fixes.length) {
+        newChangelog += `#### 👷 Fixes\n`;
+        fixes.forEach(chore => {
+            newChangelog += chore;
+        });
+        newChangelog += "\n";
+        console.log(fixes.length + ' fixes');
+
+    }
+    if (chores.length) {
+        newChangelog += `#### 🧮 Chores\n`;
+        chores.forEach(chore => {
+            newChangelog += chore;
+        });
+        newChangelog += "\n";
+        console.log(chores.length + ' chores');
+
+    }
+
+    changelogData.push(newChangelog);
+    lastTag = tag;
+});
+
+fs.writeFileSync("./CHANGELOG.md", `## Changelog\n___\n${changelogData.reverse().join("")}`);
+console.log('PROCESS FINISHED');
+
+function appendCommit(tipo, commit, arreglo) {
+    const pattern = new RegExp(tipo);
+    if (pattern.test(commit.message)) {
+        const shortHash = commit.sha.substring(0, 6);
+        const date = notime ? "" : `**${commit.date}:**`;
+        const message = commit.message.replace(new RegExp("^" + tipo, "g"), "");
+        arreglo.push(`* ${date} ${message} (${shortHash})\n`);
+        return true;
+    }
+    return false;
+}
+
